@@ -196,6 +196,7 @@ def process_and_update_elastic_doc(
             index_name = log_helper.build_index_name(headers, prefix="reference", suffix=False)
             # Ignore payload for reference data
             doc_body[message_type].pop("payload", None)
+            bulk_doc_body[message_type].pop("payload", None)
 
         if type(new_content_part["instance"]) == type([]) and not (new_content_part["dataType"] == "json"):
             # if we've a list then this is batch
