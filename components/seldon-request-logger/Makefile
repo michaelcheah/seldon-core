@@ -1,14 +1,16 @@
 SHELL := /bin/bash
 VERSION := $(shell cat ../../version.txt)
-REPO := seldonio
+REPO := michaelseldon
 
 .EXPORT_ALL_VARIABLES:
 CLIENT_ID=sd-api
-OIDC_USERNAME=admin@seldon.io
-OIDC_PASSWORD=xxxxxx
+CLIENT_SECRET=sd-api-secret
+OIDC_USERNAME=seldon
+OIDC_PASSWORD=12341234
 OIDC_SCOPES=openid profile email groups
-#DEPLOY_API_HOST=http://xx.xx.xx.xx/seldon-deploy/api/v1alpha1
-#OIDC_PROVIDER=http://xx.xx.xx.xx/auth/realms/deploy-realm
+DEPLOY_API_HOST=https://34.90.154.50/seldon-deploy/api/v1alpha1
+OIDC_PROVIDER=https://34.90.154.50/auth/realms/deploy-realm
+OIDC_AUTH_METHOD=client_credentials
 ELASTICSEARCH_HOST=localhost
 ELASTICSEARCH_PORT=9200
 
@@ -24,7 +26,18 @@ create_dummy_metadata:
 	python testing/create_dummy_metadata.py
 
 run_container:
-	docker run -p 2222:2222 -e PORT=2222 --network host seldonio/seldon-request-logger:${VERSION}
+	docker run -p 2222:2222 \
+		-e PORT=2222 \
+				-e DEPLOY_API_HOST=$(DEPLOY_API_HOST) \
+		-e OIDC_PROVIDER=$(OIDC_PROVIDER) \
+		-e CLIENT_ID=$(CLIENT_ID) \
+		-e CLIENT_SECRET=$(CLIENT_SECRET) \
+		-e OIDC_SCOPES="$(OIDC_SCOPES)" \
+		-e OIDC_USERNAME=$(OIDC_USERNAME) \
+		-e OIDC_PASSWORD=$(OIDC_PASSWORD) \
+		-e OIDC_AUTH_METHOD=$(OIDC_AUTH_METHOD) \
+		--network host michaelseldon/seldon-request-logger:${VERSION}
+
 
 run_elastic:
 	docker run -p 9200:9200 -p 9300:9300 --network host -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.0

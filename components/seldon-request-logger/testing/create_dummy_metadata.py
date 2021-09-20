@@ -5,6 +5,8 @@ from seldon_deploy_sdk import V1Model, ModelMetadataServiceApi, Configuration, A
 from seldon_deploy_sdk.auth import OIDCAuthenticator
 from seldon_deploy_sdk.rest import ApiException
 import os
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 config = Configuration()
 config.host = os.getenv('DEPLOY_API_HOST')
@@ -12,15 +14,20 @@ config.oidc_client_id = os.getenv('CLIENT_ID')
 config.oidc_server = os.getenv('OIDC_PROVIDER')
 config.username = os.getenv('OIDC_USERNAME')
 config.password = os.getenv('OIDC_PASSWORD')
-config.auth_method = 'password_grant'
+config.auth_method = 'client_credentials'
 config.scope = os.getenv('OIDC_SCOPES')
 #to use client credential set above to client_credentials and uncomment and set config.oidc_client_secret
-#config.oidc_client_secret = 'xxxxx'
+config.oidc_client_secret = 'sd-api-secret'
 #note client has to be configured in identity provider for client_credentials
+config.verify_ssl = False
+os.environ["CURL_CA_BUNDLE"] = ""
+
+print(vars(config))
 
 auth = OIDCAuthenticator(config)
 
 config.access_token = auth.authenticate()
+# config.access_token = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoT1R5RkZzU1BLVlp2Nk5UUDU0NTlzbmxPNEZ1cWRuTUdLODgwc3p5aWhFIn0.eyJleHAiOjE2MzE3NjE0MjUsImlhdCI6MTYzMTcyNTQyNSwianRpIjoiZGZlNzY1OGMtYzRjYi00NzI3LTgwYjMtOWJmNTlkNzkyNTYyIiwiaXNzIjoiaHR0cHM6Ly8zNC45MC4xNTQuNTAvYXV0aC9yZWFsbXMvZGVwbG95LXJlYWxtIiwiYXVkIjpbImRlcGxveS1zZXJ2ZXIiLCJhY2NvdW50Il0sInN1YiI6IjFjMzk4YTFhLTA1ZTUtNGYwMy1hYWZlLTZhNGZjNDRjYTBkYSIsInR5cCI6IkJlYXJlciIsImF6cCI6InNkLWFwaSIsInNlc3Npb25fc3RhdGUiOiJkMGJhNGRlOS1lYzFjLTQ0MTEtYWU5OC03MzdmMmYzYzE2MzIiLCJhY3IiOiIxIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBlbWFpbCBncm91cHMgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiY2xpZW50SWQiOiJzZC1hcGkiLCJjbGllbnRIb3N0IjoiMTAuMTIuMTEuMSIsInByZWZlcnJlZF91c2VybmFtZSI6InNlcnZpY2UtYWNjb3VudC1zZC1hcGkiLCJjbGllbnRBZGRyZXNzIjoiMTAuMTIuMTEuMSJ9.O1oLsKiqxch-cNxgC31mX-1YC2LFWWKNaSR-TRk4YHXBJBsg34f-HPyOf8fHpOnH3OWuizkeuZri1Q3kKNno7gPje47cFjH4yf3nnvmFXa8vyHzq7eFrUfYjbtXD4P_rdLd5gNqNje0dIbhLOoJHNjI7TDPimYJrF__klU2WjclzXENDsMZTN_TuO19z6-6LChNStjSdxwp6_u4L7sbvEf4Vlvlp4bLGPe_JCALaUGf2EXdApnx-eReK6sJ9iTMqdSRnclprkftXawSIk9FT1lKDTgZ32h6_2JeNTiN7jMBRh2vWNpj-5Euua_QImg16CRrFwSmaaDzw2du4x50mcw"
 print(config.access_token)
 api_client = ApiClient(configuration=config,authenticator=auth)
 api_instance = ModelMetadataServiceApi(api_client)
