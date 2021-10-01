@@ -235,25 +235,25 @@ def one_per_batch_tensor(_: RequestType):
     return request_headers, request_data, expected_index, expected_elastic_docs
 
 
-def batch_movie_sentiment_text(request_type: RequestType):
+def single_movie_sentiment_text(request_type: RequestType):
     request_headers = {
         "Ce-Inferenceservicename": "moviesentiment",
         "Content-Type": "application/json",
-        "Ce-Requestid": "6f"
+        "Ce-Requestid": "6f1"
     }
     expected_index = "inference-log-seldon-unknown-namespace-moviesentiment-unknown-endpoint"
     expected_elastic_docs: Dict[str, Any] = {
-        "6f": {
+        "6f1": {
             'ServingEngine': 'seldon',
             "Ce-Inferenceservicename": "moviesentiment",
-            'RequestId': '6f'
+            'RequestId': '6f1'
         },
     }
 
     if request_type == RequestType.REQUEST:
         request_data = '{"data": {"names": ["Text review"],"ndarray": ["this film has bad actors"]}}'
         request_headers["Ce-Type"] = "io.seldon.serving.inference.request"
-        expected_elastic_docs["6f"]["request"] = {
+        expected_elastic_docs["6f1"]["request"] = {
             'elements': {'Text review': "this film has bad actors"},
             'instance': "this film has bad actors",
             'dataType': 'text',
@@ -263,12 +263,71 @@ def batch_movie_sentiment_text(request_type: RequestType):
     else:
         request_data = '{"data":{"names":["t0","t1"],"ndarray":[[0.5,0.5]]}}'
         request_headers["Ce-Type"] = "io.seldon.serving.inference.response"
-        expected_elastic_docs["6f"]["response"] = {
+        expected_elastic_docs["6f1"]["response"] = {
             'elements': {'t0': 0.5, "t1": 0.5},
             'instance': [0.5, 0.5],
             'dataType': 'tabular',
             'names': ['t0', 't1'],
             'payload': {'data': {'names': ['t0', 't1'], 'ndarray': [[0.5, 0.5]]}}
+        }
+    return request_headers, request_data, expected_index, expected_elastic_docs
+
+def batch_movie_sentiment_text(request_type: RequestType):
+    request_headers = {
+        "Ce-Inferenceservicename": "moviesentiment",
+        "Content-Type": "application/json",
+        "Ce-Requestid": "6f2"
+    }
+    expected_index = "inference-log-seldon-unknown-namespace-moviesentiment-unknown-endpoint"
+    expected_elastic_docs: Dict[str, Any] = {
+        "6f2-item-0": {
+            'ServingEngine': 'seldon',
+            "Ce-Inferenceservicename": "moviesentiment",
+            'RequestId': '6f2'
+        },
+        "6f2-item-1": {
+            'ServingEngine': 'seldon',
+            "Ce-Inferenceservicename": "moviesentiment",
+            'RequestId': '6f2'
+        },
+    }
+
+    if request_type == RequestType.REQUEST:
+        request_data = '{"data": {"names": ["Text review"],' + \
+                       '"ndarray": ["this film has great actors", "this film has poor actors"]}}'
+        request_headers["Ce-Type"] = "io.seldon.serving.inference.request"
+        expected_elastic_docs["6f2-item-0"]["request"] = {
+            'elements': {'Text review': "this film has great actors"},
+            'instance': "this film has great actors",
+            'dataType': 'text',
+            'names': ['Text review'],
+            'payload': {"data": {"names": ["Text review"],
+                                 "ndarray": ["this film has great actors", "this film has poor actors"]}}
+        }
+        expected_elastic_docs["6f2-item-1"]["request"] = {
+            'elements': {'Text review': "this film has poor actors"},
+            'instance': "this film has poor actors",
+            'dataType': 'text',
+            'names': ['Text review'],
+            'payload': {"data": {"names": ["Text review"],
+                                 "ndarray": ["this film has great actors", "this film has poor actors"]}}
+        }
+    else:
+        request_data = '{"data":{"names":["t0","t1"],"ndarray":[[0.2,0.8],[0.7,0.3]]}}'
+        request_headers["Ce-Type"] = "io.seldon.serving.inference.response"
+        expected_elastic_docs["6f2-item-0"]["response"] = {
+            'elements': {'t0': 0.2, "t1": 0.8},
+            'instance': [0.2, 0.8],
+            'dataType': 'tabular',
+            'names': ['t0', 't1'],
+            'payload': {'data': {'names': ['t0', 't1'], 'ndarray': [[0.2,0.8],[0.7,0.3]]}}
+        }
+        expected_elastic_docs["6f2-item-1"]["response"] = {
+            'elements': {'t0': 0.7, "t1": 0.3},
+            'instance': [0.7, 0.3],
+            'dataType': 'tabular',
+            'names': ['t0', 't1'],
+            'payload': {'data': {'names': ['t0', 't1'], 'ndarray': [[0.2, 0.8], [0.7, 0.3]]}}
         }
     return request_headers, request_data, expected_index, expected_elastic_docs
 
@@ -579,6 +638,7 @@ def image_input(_: RequestType):
     expected_elastic_docs = {
         "2z2": {
             'request': {
+                'elements': None,
                 'instance': [[[1, 2, 3, 4, 5, 6, 7, 8], [9, 10, 11, 12, 13, 14, 15, 16]]],
                 'dataType': 'image',
                 'payload': {"inputs": [
@@ -705,16 +765,16 @@ def seldon_cifar10_image(request_type: RequestType):
     request_headers = {
         "Content-Type": "application/json",
         "Ce-Namespace": "seldon",
-        "Ce-Inferenceservicename": "cifar10",
+        "Ce-Inferenceservicename": "cifar10-test",
         "Ce-Endpoint": "default",
         "Ce-Requestid": "2z6",
     }
-    expected_index = "inference-log-seldon-seldon-cifar10-default"
+    expected_index = "inference-log-seldon-seldon-cifar10-test-default"
     expected_elastic_docs: Dict[str, Any] = {
         "2z6": {
             'ServingEngine': 'seldon',
             "Ce-Namespace": "seldon",
-            "Ce-Inferenceservicename": "cifar10",
+            "Ce-Inferenceservicename": "cifar10-test",
             "Ce-Endpoint": "default",
             "RequestId": "2z6",
         },
@@ -768,11 +828,11 @@ def seldon_iris_batch(_: RequestType):
         "Content-Type": "application/json",
         "Ce-Type": "io.seldon.serving.inference.request",
         "Ce-Namespace": "seldon",
-        "Ce-Inferenceservicename": "iris",
+        "Ce-Inferenceservicename": "iris-test",
         "Ce-Endpoint": "default",
         "Ce-Requestid": "2z7",
     }
-    expected_index = "inference-log-seldon-seldon-iris-default"
+    expected_index = "inference-log-seldon-seldon-iris-test-default"
     expected_elastic_docs = {
         "2z7-item-0": {
             'request': {
@@ -785,7 +845,7 @@ def seldon_iris_batch(_: RequestType):
             },
             'ServingEngine': 'seldon',
             "Ce-Namespace": "seldon",
-            "Ce-Inferenceservicename": "iris",
+            "Ce-Inferenceservicename": "iris-test",
             "Ce-Endpoint": "default",
             'RequestId': '2z7'
         },
@@ -800,7 +860,7 @@ def seldon_iris_batch(_: RequestType):
             },
             'ServingEngine': 'seldon',
             "Ce-Namespace": "seldon",
-            "Ce-Inferenceservicename": "iris",
+            "Ce-Inferenceservicename": "iris-test",
             "Ce-Endpoint": "default",
             'RequestId': '2z7'
         }
@@ -815,11 +875,11 @@ def seldon_iris_not_batch(_: RequestType):
         "Content-Type": "application/json",
         "Ce-Type": "io.seldon.serving.inference.request",
         "Ce-Namespace": "seldon",
-        "Ce-Inferenceservicename": "iris",
+        "Ce-Inferenceservicename": "iris-test",
         "Ce-Endpoint": "default",
         "Ce-Requestid": "2z8",
     }
-    expected_index = "inference-log-seldon-seldon-iris-default"
+    expected_index = "inference-log-seldon-seldon-iris-test-default"
     expected_elastic_docs = {
         "2z8": {
             'request': {
@@ -832,7 +892,7 @@ def seldon_iris_not_batch(_: RequestType):
             },
             'ServingEngine': 'seldon',
             "Ce-Namespace": "seldon",
-            "Ce-Inferenceservicename": "iris",
+            "Ce-Inferenceservicename": "iris-test",
             "Ce-Endpoint": "default",
             'RequestId': '2z8'
         }

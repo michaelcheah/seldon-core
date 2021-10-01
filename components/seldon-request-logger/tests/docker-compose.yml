@@ -7,6 +7,8 @@ services:
       - discovery.type=single-node
     ports:
       - 9200:9200
+    volumes:
+      - ./elastic_data:/usr/share/elasticsearch/data
 
   request_logger:
     image: seldonio/seldon-request-logger:1.11.0-dev
