@@ -29,6 +29,17 @@ log.setLevel(logging.ERROR)
 es = log_helper.connect_elasticsearch()
 log_mapping.init_api()
 
+from elasticsearch import Elasticsearch, helpers
+
+@app.route("/status", methods=["GET"])
+def status():
+    global metadata_api
+    msg = {
+        "elastic": es.ping(),
+        "deploy": "metadata_api" in globals() and metadata_api is not None,
+    }
+    return jsonify(msg)
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():

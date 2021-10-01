@@ -1,0 +1,28 @@
+version: '2.2'
+services:
+  elastic_svc:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+    container_name: elastic_svc
+    environment:
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+    volumes:
+      - ./elastic_data:/usr/share/elasticsearch/data
+
+  request_logger:
+    image: seldonio/seldon-request-logger:1.11.0-dev
+    container_name: request_logger
+    volumes:
+      - ../app:/opt/app-root/src/app
+    ports:
+      - 2222:2222
+    env_file: .env
+    environment:
+      - FLASK_RUN_PORT=2222
+      - APP_ENV=production
+      - PATH="/home/appuser/.local/bin:${PATH}"
+      - ELASTICSEARCH_HOST=elastic_svc
+    command: gunicorn --bind 0.0.0.0:2222 --workers 3 --threads 8 default_logger:app
+    depends_on:
+      - elastic_svc

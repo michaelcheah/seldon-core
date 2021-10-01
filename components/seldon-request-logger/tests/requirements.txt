@@ -1,0 +1,5 @@
+requests==2.26.0
+seldon_deploy_sdk==1.3.0.dev3
+pytest==6.2.5
+tests==0.007
+pytest-docker
