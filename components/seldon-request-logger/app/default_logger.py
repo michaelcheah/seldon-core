@@ -16,6 +16,12 @@ from collections.abc import Iterable
 import array
 import traceback
 from flask import jsonify
+import time
+import urllib3
+import copy
+from elasticsearch import Elasticsearch, helpers
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 MAX_PAYLOAD_BYTES = 300000
 app = Flask(__name__)
@@ -27,6 +33,21 @@ log.setLevel(logging.ERROR)
 
 es = log_helper.connect_elasticsearch()
 log_mapping.init_api()
+
+NUMBER_REQUESTS = 0
+TOTAL_GLOBAL_DURATION = 0
+TOTAL_PROCESS_DURATION = 0
+TOTAL_INSERT_DURATION = 0
+TOTAL_BULK_INSERT_DURATION = 0
+
+GLOBAL_START = 0
+PROCESS_START = 0
+PROCESS_END = 0
+INSERT_START = 0
+INSERT_END = 0
+BULK_INSERT_START = 0
+BULK_INSERT_END = 0
+
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -71,12 +92,28 @@ def index():
     # print('----')
     # sys.stdout.flush()
 
+
     try:
 
+        global GLOBAL_START
+        GLOBAL_START = time.time()
         # now process and update the doc
         added_content = process_and_update_elastic_doc(
             es, message_type, body, request_id, request.headers, index_name
         )
+        global NUMBER_REQUESTS, TOTAL_GLOBAL_DURATION, TOTAL_PROCESS_DURATION, \
+            TOTAL_INSERT_DURATION, TOTAL_BULK_INSERT_DURATION
+        NUMBER_REQUESTS += 1
+        TOTAL_GLOBAL_DURATION += time.time() - GLOBAL_START
+        TOTAL_PROCESS_DURATION += PROCESS_END - PROCESS_START
+        TOTAL_INSERT_DURATION += INSERT_END - INSERT_START
+        TOTAL_BULK_INSERT_DURATION += BULK_INSERT_END - BULK_INSERT_START
+
+        print(f"Number requests:           {NUMBER_REQUESTS}")
+        print(f"Average Request Time:      {TOTAL_GLOBAL_DURATION / NUMBER_REQUESTS}")
+        print(f"Average Process Time:      {TOTAL_PROCESS_DURATION / NUMBER_REQUESTS}")
+        print(f"Average Insert Time:       {TOTAL_INSERT_DURATION / NUMBER_REQUESTS}")
+        print(f"Average Bulk Insert Time:  {TOTAL_BULK_INSERT_DURATION / NUMBER_REQUESTS}")
 
         return jsonify(added_content)
     except Exception as ex:
@@ -125,12 +162,16 @@ def process_and_update_elastic_doc(
         sys.stdout.flush()
 
     # first do any needed transformations
+    global PROCESS_START, PROCESS_END, INSERT_START, INSERT_END, BULK_INSERT_START, BULK_INSERT_END
+    PROCESS_START = time.time()
     try:
         new_content_part = process_content(message_type, message_body, headers)
+        PROCESS_END = time.time()
     except BadPayloadException as e:
         logging.warning(f"bad payload received. " +
                         f"Not inserting {message_type} data with request id {request_id} into elasticsearch: " +
                         f"{e}")
+        PROCESS_END = time.time()
         return added_content
 
     # set metadata to go just in this part (request or response) and not top-level
@@ -145,6 +186,9 @@ def process_and_update_elastic_doc(
 
     log_helper.set_metadata(doc_body, headers, message_type, request_id)
 
+    bulk_doc_body = copy.deepcopy(doc_body)
+
+    INSERT_START = time.time()
     # req or res might be batches of instances so split out into individual docs
     if "instance" in new_content_part:
 
@@ -152,6 +196,7 @@ def process_and_update_elastic_doc(
             index_name = log_helper.build_index_name(headers, prefix="reference", suffix=False)
             # Ignore payload for reference data
             doc_body[message_type].pop("payload", None)
+            bulk_doc_body[message_type].pop("payload", None)
 
         if type(new_content_part["instance"]) == type([]) and not (new_content_part["dataType"] == "json"):
             # if we've a list then this is batch
@@ -163,7 +208,7 @@ def process_and_update_elastic_doc(
             if "elements" in new_content_part:
                 elements = new_content_part["elements"]
 
-            for num, item in enumerate(new_content_part["instance"],start=0):
+            for num, item in enumerate(new_content_part["instance"], start=0):
 
                 item_body = doc_body.copy()
 
@@ -179,6 +224,13 @@ def process_and_update_elastic_doc(
                     elastic_object, message_type, item_body, item_request_id, index_name
                 ))
                 index = index + 1
+            INSERT_END = time.time()
+
+            BULK_INSERT_START = time.time()
+            bulk_upsert_doc_to_elastic(elastic_object, message_type, bulk_doc_body,
+                                       bulk_doc_body[message_type].copy(), request_id, index_name + "-bulk")
+            BULK_INSERT_END = time.time()
+
         else:
             #not batch so don't batch elements either
             if "elements" in new_content_part and type(new_content_part["elements"]) == type([]):
@@ -188,9 +240,11 @@ def process_and_update_elastic_doc(
             added_content.append(upsert_doc_to_elastic(
                 elastic_object, message_type, doc_body, item_request_id, index_name
             ))
+            INSERT_END = time.time()
     elif message_type == "feedback":
         item_request_id = build_request_id_batched(request_id, 1, 0)
         upsert_doc_to_elastic(elastic_object, message_type, doc_body, item_request_id, index_name)
+        INSERT_END = time.time()
     elif "data" in new_content_part and message_type == "outlier":
         no_items_in_batch = len(doc_body[message_type]["data"]["is_outlier"])
         index = 0
@@ -222,6 +276,7 @@ def process_and_update_elastic_doc(
                 elastic_object, message_type, item_body, item_request_id, index_name
             )
             index = index + 1
+        INSERT_END = time.time()
     elif "data" in new_content_part and message_type == "drift":
         item_body = doc_body.copy()
 
@@ -267,9 +322,11 @@ def process_and_update_elastic_doc(
         upsert_doc_to_elastic(
             elastic_object, message_type, item_body, request_id, index_name
         )
+        INSERT_END = time.time()
     else:
         print("unexpected data format")
         print(new_content_part)
+        INSERT_END = time.time()
     return added_content
 
 
@@ -278,6 +335,38 @@ def build_request_id_batched(request_id, no_items_in_batch, item_index):
     if no_items_in_batch > 1:
         item_request_id = item_request_id + "-item-" + str(item_index)
     return item_request_id
+
+
+def bulk_upsert_doc_to_elastic(
+        elastic_object: Elasticsearch, message_type, doc_body, new_content_part, request_id, index_name
+    ):
+    log_mapping.get_log_metadata(elastic_object, message_type, doc_body, request_id, index_name)
+    no_items_in_batch = len(new_content_part["instance"])
+    elements = None
+    if "elements" in new_content_part:
+        elements = new_content_part["elements"]
+
+    def gen_data():
+        for num, item in enumerate(new_content_part["instance"], start=0):
+            item_body = doc_body.copy()
+            item_body[message_type]["instance"] = item
+            if type(elements) == type([]) and len(elements) > num:
+                item_body[message_type]["elements"] = elements[num]
+
+            item_request_id = build_request_id_batched(
+                    request_id, no_items_in_batch, num
+                )
+            yield {
+                "_index": index_name,
+                "_type": "_doc",
+                "_op_type": "update",
+                "_id": item_request_id,
+                "_source": {"doc_as_upsert": True, "doc": item_body},
+            }
+
+    helpers.bulk(
+        elastic_object, gen_data()
+    )
 
 
 def upsert_doc_to_elastic(
