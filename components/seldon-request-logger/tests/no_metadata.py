@@ -272,6 +272,7 @@ def single_movie_sentiment_text(request_type: RequestType):
         }
     return request_headers, request_data, expected_index, expected_elastic_docs
 
+
 def batch_movie_sentiment_text(request_type: RequestType):
     request_headers = {
         "Ce-Inferenceservicename": "moviesentiment",
@@ -320,7 +321,7 @@ def batch_movie_sentiment_text(request_type: RequestType):
             'instance': [0.2, 0.8],
             'dataType': 'tabular',
             'names': ['t0', 't1'],
-            'payload': {'data': {'names': ['t0', 't1'], 'ndarray': [[0.2,0.8],[0.7,0.3]]}}
+            'payload': {'data': {'names': ['t0', 't1'], 'ndarray': [[0.2, 0.8], [0.7, 0.3]]}}
         }
         expected_elastic_docs["6f2-item-1"]["response"] = {
             'elements': {'t0': 0.7, "t1": 0.3},
@@ -400,13 +401,23 @@ def kfserving_tensor_iris_batch_of_two(request_type: RequestType):
         request_data = '{"instances": [[6.8,  2.8,  4.8,  1.4],[6.0,  3.4,  4.5,  1.6]]}'
         request_headers["Ce-Type"] = "org.kubeflow.serving.inference.request"
         expected_elastic_docs["8h-item-0"]["request"] = {
-            'elements': None,
+            'elements': {
+                "Feature_0": 6.8,
+                "Feature_1": 2.8,
+                "Feature_2": 4.8,
+                "Feature_3": 1.4,
+            },
             'instance': [6.8, 2.8, 4.8, 1.4],
             'dataType': 'tabular',
             'payload': {'instances': [[6.8, 2.8, 4.8, 1.4], [6.0, 3.4, 4.5, 1.6]]},
         }
         expected_elastic_docs["8h-item-1"]["request"] = {
-            'elements': None,
+            'elements': {
+                "Feature_0": 6.0,
+                "Feature_1": 3.4,
+                "Feature_2": 4.5,
+                "Feature_3": 1.6,
+            },
             'instance': [6.0, 3.4, 4.5, 1.6],
             'dataType': 'tabular',
             'payload': {'instances': [[6.8, 2.8, 4.8, 1.4], [6.0, 3.4, 4.5, 1.6]]},
@@ -415,15 +426,15 @@ def kfserving_tensor_iris_batch_of_two(request_type: RequestType):
         request_data = '{"predictions": [1,2]}'
         request_headers["Ce-Type"] = "org.kubeflow.serving.inference.response"
         expected_elastic_docs["8h-item-0"]["response"] = {
-            'elements': None,
-            'instance': 1,
-            'dataType': 'number',
+            'elements': {"Feature_0": 1.0},
+            'instance': [1.0],
+            'dataType': 'tabular',
             'payload': {'predictions': [1, 2]},
         }
         expected_elastic_docs["8h-item-1"]["response"] = {
-            'elements': None,
-            'instance': 2,
-            'dataType': 'number',
+            'elements': {"Feature_0": 2.0},
+            'instance': [2.0],
+            'dataType': 'tabular',
             'payload': {'predictions': [1, 2]},
         }
 
@@ -473,7 +484,7 @@ def kfserving_cifar10(request_type: RequestType):
         request_data = raw_data
         request_headers["Ce-Type"] = "org.kubeflow.serving.inference.request"
         expected_elastic_docs["9i"]["request"] = {
-            'elements': None,
+            'elements': {"Feature_0": data["instances"][0]},
             'instance': data["instances"][0],
             'dataType': 'image',
             'payload': data,
@@ -482,8 +493,8 @@ def kfserving_cifar10(request_type: RequestType):
         request_data = '{"predictions":[2]}'
         request_headers["Ce-Type"] = "org.kubeflow.serving.inference.response"
         expected_elastic_docs["9i"]["response"] = {
-            'elements': None,
-            'instance': 2,
+            'elements': {'Feature_0': 2.0},
+            'instance': [2.0],
             'dataType': 'number',
             'payload': {'predictions': [2]},
         }
@@ -516,7 +527,7 @@ def dummy_tabular(_: RequestType):
         "10j": {
             'request': {
                 'elements': {'dummy feature': 1.0},
-                'instance': 1.0,
+                'instance': [1.0],
                 'dataType': 'number',
                 'names': ["dummy feature"],
                 'payload': {"data": {"names": ["dummy feature"], "ndarray": [1.0]}},
@@ -590,8 +601,12 @@ def tabular_input_multiple_output(request_type: RequestType):
                        '"datatype":"INT32","shape":[1,16]}]}'
         request_headers["Ce-Type"] = "io.seldon.serving.inference.request"
         expected_elastic_docs["2z1"]["request"] = {
-            'elements': None,
-            'instance': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+            'elements': {
+                "INPUT0": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
+                "INPUT1": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0,
+                           150.0, 160.0],
+            },
+            'instance': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
             'dataType': 'tabular',
             'payload': {"inputs": [
                 {"name": "INPUT0", "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
@@ -607,9 +622,11 @@ def tabular_input_multiple_output(request_type: RequestType):
                        '"data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}]}'
         request_headers["Ce-Type"] = "io.seldon.serving.inference.response"
         expected_elastic_docs["2z1"]["response"] = {
-            'elements': None,
+            'elements': {
+                "OUTPUT0": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 8.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0],
+                "OUTPUT1": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
             # TODO: (only first output handled for now) note in the original implementation
-            'instance': [2, 4, 6, 8, 10, 12, 14, 16, 8, 20, 22, 24, 26, 28, 30, 32],
+            'instance': [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 8.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0],
             'dataType': 'tabular',
             'payload': {"model_name": "simple", "model_version": "1", "outputs": [
                 {"name": "OUTPUT0", "datatype": "INT32", "shape": [1, 16],
@@ -638,8 +655,12 @@ def image_input(_: RequestType):
     expected_elastic_docs = {
         "2z2": {
             'request': {
-                'elements': None,
-                'instance': [[[1, 2, 3, 4, 5, 6, 7, 8], [9, 10, 11, 12, 13, 14, 15, 16]]],
+                'elements': {'INPUT0': [[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+                                         [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]]],
+                             'INPUT1': [[[10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0],
+                                         [90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0]]]},
+                'instance': [
+                    [[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]]],
                 'dataType': 'image',
                 'payload': {"inputs": [
                     {"name": "INPUT0", "data": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
@@ -700,7 +721,7 @@ def seldon_income_classifier(request_type: RequestType):
             'elements': {"t:0": 0.8538818809164035, "t:1": 0.14611811908359656},
             'instance': [0.8538818809164035, 0.14611811908359656],
             'dataType': 'tabular',
-            'meta': {'requestPath': {'income-container': 'seldonio/sklearnserver:1.7.0'}},
+            # 'meta': {'requestPath': {'income-container': 'seldonio/sklearnserver:1.7.0'}},
             'names': ['t:0', 't:1'],
             'payload': {"data": {"names": ["t:0", "t:1"], "ndarray": [[0.8538818809164035, 0.14611811908359656]]},
                         "meta": {"requestPath": {"income-container": "seldonio/sklearnserver:1.7.0"}}}
@@ -787,7 +808,7 @@ def seldon_cifar10_image(request_type: RequestType):
         request_data = raw_data
         request_headers["Ce-Type"] = "io.seldon.serving.inference.request"
         expected_elastic_docs["2z6"]["request"] = {
-            'elements': None,
+            'elements': {"Feature_0": data["instances"][0]},
             'instance': data["instances"][0],
             'dataType': 'image',
             'payload': data,
@@ -797,7 +818,18 @@ def seldon_cifar10_image(request_type: RequestType):
                        '5.51306611e-10,1.16171928e-9,5.77288495e-10,2.88396933e-7,0.000614895718,0.999383569]]}'
         request_headers["Ce-Type"] = "io.seldon.serving.inference.response"
         expected_elastic_docs["2z6"]["response"] = {
-            'elements': None,
+            'elements': {
+                'Feature_0': 1.26448515e-06,
+                'Feature_1': 4.88145879e-09,
+                'Feature_2': 1.51533219e-09,
+                'Feature_3': 8.49055848e-09,
+                'Feature_4': 5.51306611e-10,
+                'Feature_5': 1.16171928e-09,
+                'Feature_6': 5.77288495e-10,
+                'Feature_7': 2.88396933e-07,
+                'Feature_8': 0.000614895718,
+                'Feature_9': 0.999383569,
+            },
             'instance': [1.26448515e-6, 4.88145879e-9, 1.51533219e-9, 8.49055848e-9, 5.51306611e-10, 1.16171928e-9,
                          5.77288495e-10, 2.88396933e-7, 0.000614895718, 0.999383569],
             'dataType': 'tabular',
@@ -914,8 +946,21 @@ def kfserving_income(_: RequestType):
     expected_elastic_docs = {
         "2z9": {
             'request': {
-                'elements': None,
-                'instance': [39, 7, 1, 1, 1, 1, 4, 1, 2174, 0, 40, 9],
+                'elements': {
+                    "Feature_0": 39.0,
+                    "Feature_1": 7.0,
+                    "Feature_2": 1.0,
+                    "Feature_3": 1.0,
+                    "Feature_4": 1.0,
+                    "Feature_5": 1.0,
+                    "Feature_6": 4.0,
+                    "Feature_7": 1.0,
+                    "Feature_8": 2174.0,
+                    "Feature_9": 0.0,
+                    "Feature_10": 40.0,
+                    "Feature_11": 9.0,
+                },
+                'instance': [39.0, 7.0, 1.0, 1.0, 1.0, 1.0, 4.0, 1.0, 2174.0, 0.0, 40.0, 9.0],
                 'dataType': 'tabular',
                 'payload': {"instances": [[39, 7, 1, 1, 1, 1, 4, 1, 2174, 0, 40, 9]]},
             },
@@ -931,8 +976,9 @@ def kfserving_income(_: RequestType):
 
 def seldon_drift(_: RequestType):
     data = {"drift": {"data": {"is_drift": True, "distance": {"Input Image": 0.533299999923706055},
-                    "p_val": {"Input Image": 0.4361779987812042},"threshold": 0.0015625, "drift_type": "feature"},
-            "meta": {"name": "KSDrift","detector_type": "offline","data_type": None}}}
+                               "p_val": {"Input Image": 0.4361779987812042}, "threshold": 0.0015625,
+                               "drift_type": "feature"},
+                      "meta": {"name": "KSDrift", "detector_type": "offline", "data_type": None}}}
     request_data = '{"data": {"feature_score": null, "instance_score": null, "is_outlier": [1]}, ' + \
                    '"meta": {"name": "KSDrift", "detector_type": "offline", "data_type": null}}'
     request_headers = {
@@ -972,5 +1018,3 @@ def seldon_drift(_: RequestType):
         }
     }
     return request_headers, request_data, expected_index, expected_elastic_docs
-
-

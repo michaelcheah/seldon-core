@@ -69,7 +69,7 @@ def model_metadata():
         #  Use names, uris and artifact types below when filling in wizard.
         #    Same model different versions
         TestModel.IRIS: {
-            "uri": "gs://seldon-models/sklearn/iris",
+            "uri": "gs://seldon-models/v1.11.2/sklearn/iris",
             "name": "iris",
             "version": "v2.0.0",
             "artifact_type": "SKLEARN",
@@ -456,7 +456,7 @@ def seldon_iris_batch(_: RequestType):
                 'elements': {"Sepal Length": 6.8, "Sepal Width": 2.8, "Petal Length": 4.8, "Petal Width": 1.4},
                 'instance': [6.8, 2.8, 4.8, 1.4],
                 'dataType': 'tabular',
-                'names': ["SL", "SW", "PL", "PW"],
+                'names': ["Sepal Length", "Sepal Width", "Petal Length", "Petal Width"],
                 'payload': {"data": {"names": ["SL", "SW", "PL", "PW"],
                                      "ndarray": [[6.8, 2.8, 4.8, 1.4], [6.1, 3.4, 4.5, 1.6]]}},
             },
@@ -471,7 +471,7 @@ def seldon_iris_batch(_: RequestType):
                 'elements': {"Sepal Length": 6.1, "Sepal Width": 3.4, "Petal Length": 4.5, "Petal Width": 1.6},
                 'instance': [6.1, 3.4, 4.5, 1.6],
                 'dataType': 'tabular',
-                'names': ["SL", "SW", "PL", "PW"],
+                'names': ["Sepal Length", "Sepal Width", "Petal Length", "Petal Width"],
                 'payload': {"data": {"names": ["SL", "SW", "PL", "PW"],
                                      "ndarray": [[6.8, 2.8, 4.8, 1.4], [6.1, 3.4, 4.5, 1.6]]}},
             },
@@ -498,7 +498,7 @@ def seldon_iris_not_batch(_: RequestType):
                 'elements': {"Sepal Length": 6.3, "Sepal Width": 2.8, "Petal Length": 4.8, "Petal Width": 1.4},
                 'instance': [6.3, 2.8, 4.8, 1.4],
                 'dataType': 'tabular',
-                'names': ["SL", "SW", "PL", "PW"],
+                'names': ["Sepal Length", "Sepal Width", "Petal Length", "Petal Width"],
                 'payload': {"data": {"names": ["SL", "SW", "PL", "PW"],
                                      "ndarray": [[6.3, 2.8, 4.8, 1.4]]}},
             },

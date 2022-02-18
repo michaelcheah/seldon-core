@@ -180,12 +180,19 @@ def fetch_metadata(namespace, serving_engine, inferenceservice_name, predictor_n
         print('metadata service not configured')
         return None
 
+    print(f"RUNTIME METADATA for {inferenceservice_name}, {namespace}, {predictor_name}, {deployment_type}")
     # TODO: in next iteration will only need one lookup straight to model metadata
     # was expcting to set deployment_type=serving_engine but deployment_type does not seem to be a param
-    runtime_metadata = metadata_api.model_metadata_service_list_runtime_metadata_for_model(
-        deployment_name=inferenceservice_name,deployment_namespace=namespace,
-        predictor_name=predictor_name,deployment_type=deployment_type,
-        deployment_status="Running")
+    runtime_metadata = None
+    try:
+        runtime_metadata = metadata_api.model_metadata_service_list_runtime_metadata_for_model(
+            deployment_name=inferenceservice_name,deployment_namespace=namespace,
+            predictor_name=predictor_name,deployment_type=deployment_type,
+            deployment_status="Running")
+    except Exception as e:
+        print("error trying to retrieve runtime metadata: ", e)
+
+    print(f"RUNTIME METADATA for {inferenceservice_name}: ", runtime_metadata)
 
     if runtime_metadata is not None and runtime_metadata and \
             runtime_metadata.runtime_metadata is not None and runtime_metadata.runtime_metadata:
