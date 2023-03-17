@@ -54,6 +54,10 @@ income: env
 upload-income:
 	gsutil cp income/model.joblib gs://seldon-models/scv2/samples/${MLSERVER_FOLDER}/income-sklearn/model.joblib
 
+.PHONY: income
+income: env
+	cd income && ../.env/bin/python3 train.py
+
 #
 # Income XGBoost model
 #

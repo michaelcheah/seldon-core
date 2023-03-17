@@ -72,4 +72,4 @@ def main():
 
 if __name__ == "__main__":
     print("Building income model...")
-    main()
+    # main()
